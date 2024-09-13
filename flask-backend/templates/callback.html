@@ -1,0 +1,24 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>OAuth Callback</title>
+    <script type="text/javascript">
+        function closePopup() {
+            // Inform the parent window that authentication was successful
+            if (window.opener) {
+                window.opener.postMessage('auth_success', '*');
+            }
+            // Close the popup window
+            window.close();
+        }
+
+        // Call closePopup function when the page is loaded
+        window.onload = closePopup;
+    </script>
+</head>
+<body>
+    <p>Processing your authentication...</p>
+</body>
+</html>
