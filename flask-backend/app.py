@@ -34,7 +34,7 @@ app.config['OAUTH2_PROVIDERS'] = {
             'url': 'https://api.github.com/user/emails',
             'email': lambda json: json[0]['email'],
         },
-        'scopes': ['user:email'],
+        'scopes': ['user:email', 'repo'],
     },
 }
 
@@ -190,6 +190,8 @@ def get_commits():
         commits_url = f"{provider_data['userinfo']['url'].replace('/emails', '')}/repos/{repo['owner']['login']}/{repo_name}/commits"
         print(commits_url)
         params = {
+            "since": start_date,
+            "until": end_date
         }
         commits_response = requests.get(commits_url, headers=headers, params=params)
 
