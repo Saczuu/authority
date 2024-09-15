@@ -1,9 +1,22 @@
 import React, { useState, useEffect } from 'react';
-import GitHub from './components/GitHubButton';
+import GitHub from './components/GitHub/GitHubButton';
+import Container from './components/Container/Container';
+import MonthDropdown from './components/MonthDropdown/MonthDropdown';
+import CommitButton from './components/CommitButton/CommitButton';
+
 import './App.css';
 
 function App() {
-  const [cookieValue, setCookieValue] = useState(null);
+  const [githubVerified, setGithubVerified] = useState(false);
+
+  const [selectedMonth, setSelectedMonth] = useState('');
+
+  const handleMonthSelect = (month) => {
+      setSelectedMonth(month); // Store the selected month
+      console.log('Selected Month:', month);
+      // You can also make an API call or handle other logic here based on the selected month
+  };
+  
 
   // Function to fetch the cookie value
   const fetchCookie = async () => {
@@ -11,21 +24,20 @@ function App() {
       const response = await fetch('/private/setup');
       if (response.ok) {
         const text = await response.text();
-        setCookieValue(text);
+        setGithubVerified(true);
       } else {
-        setCookieValue("Cookie not found");
+        setGithubVerified(false);
       }
     } catch (error) {
       console.error("Error fetching cookie:", error);
-      setCookieValue("Error fetching cookie");
+      setGithubVerified(false);
     }
   };
 
   // Fetch the cookie value when the component mounts
   useEffect(() => {
     fetchCookie();
-  });
-
+  }, []);  // Empty array means this useEffect runs once after mount
 
   // Function to reset the cookie
   const resetCookie = async () => {
@@ -37,13 +49,23 @@ function App() {
     }
   };
 
+  // Conditionally render GitHub or "Commits here" based on githubState
+  let content;
+  if (githubVerified) {
+    content = <CommitButton />;
+  } else {
+    content = <GitHub />;
+  }
+
   return (
     <div className="App">
-      <div>
-        <p>{cookieValue}</p>
-        <GitHub />
-        <button onClick={resetCookie}>Reset Cookie</button>
-      </div>
+      <button onClick={resetCookie}>Reset Cookies</button>
+      <Container backgroundColor="#e0f7fa">
+        <div>
+          <h1>GitHub</h1>
+          {content} {/* Render based on the condition */}
+        </div>
+      </Container>
     </div>
   );
 }

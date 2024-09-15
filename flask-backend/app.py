@@ -1,10 +1,13 @@
 from dotenv import load_dotenv
-from flask import Flask, redirect, url_for, make_response, request, current_app, session, abort
+from flask import Flask, redirect, url_for, make_response, request, current_app, session, abort, Response
 import json
 import os
 import secrets
 import requests
 from urllib.parse import urlencode
+from datetime import datetime
+import calendar
+import jsonify
 
 load_dotenv()
 
@@ -128,6 +131,99 @@ def oauth2_callback(provider):
 
     return render_template('callback.html', success=True)
 
+
+@app.route('/get_commits', methods=['GET'])
+def get_commits():
+    # Get the GitHub OAuth2 token from the cookie
+    github_user_cookie = request.cookies.get('github_user')
+
+    if not github_user_cookie:
+        return Response(json.dumps({'error': 'GitHub user not authenticated'}), status=401, mimetype='application/json')
+
+    github_user_data = json.loads(github_user_cookie)
+    access_token = github_user_data.get('access_token')
+
+    if not access_token:
+        return Response(json.dumps({'error': 'Access token not found in cookie'}), status=401, mimetype='application/json')
+
+    # Get the GitHub API URL and other provider info from the app config
+    provider_data = current_app.config['OAUTH2_PROVIDERS'].get('github')
+    if not provider_data:
+        return Response(json.dumps({'error': 'GitHub provider configuration not found'}), status=500, mimetype='application/json')
+
+    # Get the selected month from the query parameters
+    month = request.args.get('month')  # Format: "YYYY-MM"
+    
+    if not month:
+        return Response(json.dumps({'error': 'Month parameter is required'}), status=400, mimetype='application/json')
+
+    # Convert the month into start and end dates
+    try:
+        start_date = datetime.strptime(month, "%Y-%m").strftime("%Y-%m-%dT00:00:00Z")
+        year, month_num = month.split('-')
+        next_month_num = int(month_num) + 1
+        if next_month_num > 12:
+            next_month_num = 1
+            year = int(year) + 1
+        end_date = f"{year}-{str(next_month_num).zfill(2)}-01T00:00:00Z"
+    except ValueError:
+        return Response(json.dumps({'error': 'Invalid month format. Use YYYY-MM.'}), status=400, mimetype='application/json')
+
+    # Fetch the user's repositories (including private repos) from GitHub
+    repos_url = f"{provider_data['userinfo']['url'].replace('/emails', '')}/repos"  # Base URL for user repos
+    headers = {
+        "Authorization": f"Bearer {access_token}",
+        "Accept": "application/vnd.github.v3+json"
+    }
+
+    repos_response = requests.get(repos_url, headers=headers)
+
+    if repos_response.status_code != 200:
+        return Response(json.dumps({'error': 'Failed to fetch repositories from GitHub'}), status=repos_response.status_code, mimetype='application/json')
+
+    repos = repos_response.json()
+    all_commits = []
+
+    # Fetch commits for each repository for the given date range
+    for repo in repos:
+        repo_name = repo['name']
+        commits_url = f"{provider_data['userinfo']['url'].replace('/emails', '')}/repos/{repo['owner']['login']}/{repo_name}/commits"
+        print(commits_url)
+        params = {
+        }
+        commits_response = requests.get(commits_url, headers=headers, params=params)
+
+        if commits_response.status_code == 200:
+            repo_commits = commits_response.json()
+            if repo_commits:
+                all_commits.append({
+                    'repo': repo_name,
+                    'commits': repo_commits
+                })
+
+    if not all_commits:
+        return Response(json.dumps({'message': 'No commits found for the given month'}), status=200, mimetype='application/json')
+
+    return Response(json.dumps(all_commits), status=200, mimetype='application/json')
+
+
+@app.route('/last_three_months', methods=['GET'])
+def last_three_months():
+    today = datetime.today()
+    months = []
+    
+    for i in range(1, 4):
+        year = today.year
+        month = today.month - i
+        
+        if month <= 0:
+            month += 12
+            year -= 1
+        
+        month_name = calendar.month_name[month]
+        months.append(f"{month_name} {year}")
+    
+    return Response(json.dumps(months), mimetype='application/json')
 
 # Private - debugs
 @app.route('/private/reset')
