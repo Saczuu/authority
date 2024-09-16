@@ -146,31 +146,12 @@ def get_commits():
     if not access_token:
         return Response(json.dumps({'error': 'Access token not found in cookie'}), status=401, mimetype='application/json')
 
-    # Get the GitHub API URL and other provider info from the app config
-    provider_data = current_app.config['OAUTH2_PROVIDERS'].get('github')
-    if not provider_data:
-        return Response(json.dumps({'error': 'GitHub provider configuration not found'}), status=500, mimetype='application/json')
-
-    # Get the selected month from the query parameters
-    month = request.args.get('month')  # Format: "YYYY-MM"
-    
-    if not month:
-        return Response(json.dumps({'error': 'Month parameter is required'}), status=400, mimetype='application/json')
-
-    # Convert the month into start and end dates
-    try:
-        start_date = datetime.strptime(month, "%Y-%m").strftime("%Y-%m-%dT00:00:00Z")
-        year, month_num = month.split('-')
-        next_month_num = int(month_num) + 1
-        if next_month_num > 12:
-            next_month_num = 1
-            year = int(year) + 1
-        end_date = f"{year}-{str(next_month_num).zfill(2)}-01T00:00:00Z"
-    except ValueError:
-        return Response(json.dumps({'error': 'Invalid month format. Use YYYY-MM.'}), status=400, mimetype='application/json')
+    # Hardcoded date range for this week (9th Sept 2024 to 15th Sept 2024)
+    start_date = "2024-09-09T00:00:00Z"
+    end_date = "2024-09-15T23:59:59Z"
 
     # Fetch the user's repositories (including private repos) from GitHub
-    repos_url = f"{provider_data['userinfo']['url'].replace('/emails', '')}/repos"  # Base URL for user repos
+    repos_url = "https://api.github.com/user/repos"  # Get repositories endpoint
     headers = {
         "Authorization": f"Bearer {access_token}",
         "Accept": "application/vnd.github.v3+json"
@@ -184,16 +165,22 @@ def get_commits():
     repos = repos_response.json()
     all_commits = []
 
-    # Fetch commits for each repository for the given date range
+    # Fetch commits for each repository for the given hardcoded date range
     for repo in repos:
         repo_name = repo['name']
-        commits_url = f"{provider_data['userinfo']['url'].replace('/emails', '')}/repos/{repo['owner']['login']}/{repo_name}/commits"
-        print(commits_url)
+        commits_url = f"https://api.github.com/repos/{repo['owner']['login']}/{repo_name}/commits"
         params = {
             "since": start_date,
             "until": end_date
         }
         commits_response = requests.get(commits_url, headers=headers, params=params)
+
+        # Log the full request and response for debugging
+        print(f"Fetching commits from: {commits_url}")
+        print(f"Status Code: {commits_response.status_code}")
+        print(f"Response Body: {commits_response.text}")
+        print(f"RateLimit Remaining: {commits_response.headers.get('X-RateLimit-Remaining')}")
+        print(f"RateLimit Reset: {commits_response.headers.get('X-RateLimit-Reset')}")
 
         if commits_response.status_code == 200:
             repo_commits = commits_response.json()
@@ -202,9 +189,11 @@ def get_commits():
                     'repo': repo_name,
                     'commits': repo_commits
                 })
+        else:
+            print(f"Error fetching commits for repo {repo_name}: {commits_response.text}")
 
     if not all_commits:
-        return Response(json.dumps({'message': 'No commits found for the given month'}), status=200, mimetype='application/json')
+        return Response(json.dumps({'message': 'No commits found for the given week'}), status=200, mimetype='application/json')
 
     return Response(json.dumps(all_commits), status=200, mimetype='application/json')
 
