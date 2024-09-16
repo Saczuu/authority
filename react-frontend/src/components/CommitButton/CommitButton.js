@@ -1,6 +1,6 @@
 import React from 'react';
 
-const CommitsButton = () => {
+const CommitButton = () => {
     const currentMonth = new Date().toISOString().slice(0, 7); // Get current month in YYYY-MM format
 
     const fetchCommits = () => {
@@ -27,4 +27,4 @@ const CommitsButton = () => {
     );
 };
 
-export default CommitsButton;
+export default CommitButton;
