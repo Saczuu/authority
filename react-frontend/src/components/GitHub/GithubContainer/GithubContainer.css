@@ -1,0 +1,8 @@
+.github-container {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    text-align: center; /* Center text and button content */
+    flex-direction: column; /* Stack items vertically */
+  }
+  

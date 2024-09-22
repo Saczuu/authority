@@ -1,0 +1,35 @@
+/* Container for centering the button */
+.github-button-container {
+  display: flex;
+  justify-content: center; /* Centers horizontally */
+  align-items: center; /* Aligns items vertically if needed */
+  height: 100%; /* Ensure it takes up the full height of the container */
+}
+
+/* GitHub Button Styles */
+.github-button {
+  background-color: #000;
+  border: none;
+  color: white;
+  padding: 10px 20px;
+  text-align: center;
+  display: flex;
+  align-items: center;
+  justify-content: center; /* Ensures the content inside the button is centered */
+  border-radius: 50px;
+  cursor: pointer;
+  font-size: 16px;
+  font-weight: bold;
+}
+
+/* Button Hover Effect */
+.github-button:hover {
+  background-color: #333; 
+}
+
+/* GitHub Logo Styling */
+.github-logo {
+  width: 24px;
+  height: 24px;
+  margin-right: 8px;
+}

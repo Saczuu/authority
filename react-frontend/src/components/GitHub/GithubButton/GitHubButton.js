@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import './GitHubButton.css';
 
-function GitHub() {
+function GitHubAuthButton() {
   const [popupClosed, setPopupClosed] = useState(false);
 
   const handleAuthClick = () => {
@@ -34,16 +34,18 @@ function GitHub() {
   }, [popupClosed]);
 
   return (
-    <button className="github-button" onClick={handleAuthClick}>
-      <img 
-        src="https://github.githubassets.com/images/modules/logos_page/GitHub-Mark.png" 
-        alt="GitHub Logo" 
-        className="github-logo" 
-      />
-      GitHub
-    </button>
+    <div className="github-button-container">
+      <button className="github-button" onClick={handleAuthClick}>
+        <img 
+          src="https://github.githubassets.com/images/modules/logos_page/GitHub-Mark.png" 
+          alt="GitHub Logo" 
+          className="github-logo" 
+        />
+        GitHub
+      </button>
+      </div>
   );
 }
 
-export default GitHub;
+export default GitHubAuthButton;
 
