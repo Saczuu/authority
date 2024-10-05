@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import GitHubAuthButton from '../GithubButton/GitHubButton';
+import CommitButton from '../../CommitButton/CommitButton';
 
 import './GithubContainer.css';
 

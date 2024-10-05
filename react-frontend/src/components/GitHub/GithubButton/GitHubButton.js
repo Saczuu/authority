@@ -11,7 +11,7 @@ function GitHubAuthButton() {
     const top = (window.innerHeight - height) / 2;
 
     const popup = window.open(
-      `http://localhost:5000/authorize/github`, // Adjust the URL if your Flask app runs on a different port
+      `http://127.0.0.1:5000/authorize/github`, // Adjust the URL if your Flask app runs on a different port
       'GitHub Authorization',
       `width=${width},height=${height},top=${top},left=${left}`
     );
