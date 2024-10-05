@@ -18,13 +18,13 @@ function App() {
   const resetCookie = async () => {
     try {
       await fetch('/private/reset');
-      fetchCookie(); // Refresh the cookie value after resetting
+      fetchCookie();
     } catch (error) {
       console.error("Error resetting cookie:", error);
     }
-  };
 
-  // Conditionally render GitHub or "Commits here" based on githubState
+    window.location.reload();
+  };
 
   return (
     <div className="App">
