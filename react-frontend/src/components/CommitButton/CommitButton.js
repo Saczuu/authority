@@ -4,7 +4,7 @@ const CommitButton = () => {
     const currentMonth = new Date().toISOString().slice(0, 7); // Get current month in YYYY-MM format
 
     const fetchCommits = () => {
-        const url = `/get_commits?month=${currentMonth}`; // API endpoint with current month as query param
+        const url = `/get_commits/${currentMonth}`; // API endpoint with current month as query param
 
         fetch(url, {
             method: 'GET',

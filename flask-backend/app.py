@@ -7,7 +7,6 @@ import requests
 from urllib.parse import urlencode
 from datetime import datetime
 import calendar
-import jsonify
 
 load_dotenv()
 
@@ -43,7 +42,7 @@ def index():
     return "Welcome to the index page!"
 
 @app.route('/authorize/<provider>')
-def oauth2_authorize(provider):
+def oauth2_authorize(mo):
     print(f"Received request to verify OAuth2 for {provider}")
 
     provider_data = current_app.config['OAUTH2_PROVIDERS'].get(provider)
@@ -131,8 +130,26 @@ def oauth2_callback(provider):
 
     return render_template('callback.html', success=True)
 
-@app.route('/get_commits', methods=['GET'])
-def get_commits():
+def get_month_date_range(month_param):
+    """
+    Given a 'YYYY-MM' string, return the first and last date of that month in ISO format.
+    """
+    try:
+        # Parse the year and month from the 'month' parameter
+        year, month = map(int, month_param.split('-'))
+
+        # Calculate the first day and last day of the given month
+        first_day = datetime(year, month, 1).strftime("%Y-%m-%dT00:00:00Z")
+        last_day = datetime(year, month, calendar.monthrange(year, month)[1]).strftime("%Y-%m-%dT23:59:59Z")
+
+        return first_day, last_day
+    except ValueError:
+        raise ValueError('Invalid month format. Expected format: YYYY-MM')
+
+
+@app.route('/get_commits/<year_month_date>', methods=['GET'])
+def get_commits(year_month_date):
+    print(year_month_date)
     # Get the GitHub OAuth2 token from the cookie
     github_user_cookie = request.cookies.get('github_user')
 
@@ -145,9 +162,14 @@ def get_commits():
     if not access_token:
         return Response(json.dumps({'error': 'Access token not found in cookie'}), status=401, mimetype='application/json')
 
-    # Hardcoded date range for this week (9th Sept 2024 to 15th Sept 2024)
-    start_date = "2024-09-09T00:00:00Z"
-    end_date = "2024-09-15T23:59:59Z"
+    if not year_month_date:
+        return Response(json.dumps({'error': 'Month parameter is required in the format YYYY-MM'}), status=400, mimetype='application/json')
+
+    try:
+        # Get the date range for the selected month using the helper function
+        start_date, end_date = get_month_date_range(year_month_date)
+    except ValueError as e:
+        return Response(json.dumps({'error': str(e)}), status=400, mimetype='application/json')
 
     # Fetch the user's repositories (including private repos) from GitHub
     repos_url = "https://api.github.com/user/repos"
@@ -208,7 +230,7 @@ def get_commits():
             continue
 
     if not all_commits:
-        return Response(json.dumps({'message': 'No commits found for the given week'}), status=200, mimetype='application/json')
+        return Response(json.dumps({'message': f'No commits found for the month {month_param}'}), status=200, mimetype='application/json')
 
     return Response(json.dumps(all_commits), status=200, mimetype='application/json')
 
@@ -247,5 +269,3 @@ def setup():
 
 if __name__ == '__main__':
     app.run(host='127.0.0.1', port=5000)
-
-
