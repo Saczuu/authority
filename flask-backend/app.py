@@ -131,7 +131,6 @@ def oauth2_callback(provider):
 
     return render_template('callback.html', success=True)
 
-
 @app.route('/get_commits', methods=['GET'])
 def get_commits():
     # Get the GitHub OAuth2 token from the cookie
@@ -151,7 +150,7 @@ def get_commits():
     end_date = "2024-09-15T23:59:59Z"
 
     # Fetch the user's repositories (including private repos) from GitHub
-    repos_url = "https://api.github.com/user/repos"  # Get repositories endpoint
+    repos_url = "https://api.github.com/user/repos"
     headers = {
         "Authorization": f"Bearer {access_token}",
         "Accept": "application/vnd.github.v3+json"
@@ -163,40 +162,55 @@ def get_commits():
         return Response(json.dumps({'error': 'Failed to fetch repositories from GitHub'}), status=repos_response.status_code, mimetype='application/json')
 
     repos = repos_response.json()
-    all_commits = []
+    all_commits = {}
 
-    # Fetch commits for each repository for the given hardcoded date range
+    # Fetch commits for each repository and its branches for the given date range
     for repo in repos:
         repo_name = repo['name']
-        commits_url = f"https://api.github.com/repos/{repo['owner']['login']}/{repo_name}/commits"
-        params = {
-            "since": start_date,
-            "until": end_date
-        }
-        commits_response = requests.get(commits_url, headers=headers, params=params)
+        owner_login = repo['owner']['login']
+        branches_url = f"https://api.github.com/repos/{owner_login}/{repo_name}/branches"
 
-        # Log the full request and response for debugging
-        print(f"Fetching commits from: {commits_url}")
-        print(f"Status Code: {commits_response.status_code}")
-        print(f"Response Body: {commits_response.text}")
-        print(f"RateLimit Remaining: {commits_response.headers.get('X-RateLimit-Remaining')}")
-        print(f"RateLimit Reset: {commits_response.headers.get('X-RateLimit-Reset')}")
+        branches_response = requests.get(branches_url, headers=headers)
+        if branches_response.status_code != 200:
+            print(f"Error fetching branches for repo {repo_name}: {branches_response.text}")
+            continue
 
-        if commits_response.status_code == 200:
-            repo_commits = commits_response.json()
-            if repo_commits:
-                all_commits.append({
-                    'repo': repo_name,
-                    'commits': repo_commits
-                })
+        branches = branches_response.json()
+        branch_commits_dict = {}
+
+        for branch in branches:
+            branch_name = branch['name']
+            commits_url = f"https://api.github.com/repos/{owner_login}/{repo_name}/commits"
+            params = {
+                "sha": branch_name,  # Specify branch name in the `sha` param to fetch commits for that branch
+                "since": start_date,
+                "until": end_date
+            }
+
+            commits_response = requests.get(commits_url, headers=headers, params=params)
+            if commits_response.status_code == 200:
+                branch_commits = commits_response.json()
+                if branch_commits:  # Only add if branch has commits
+                    commit_info_list = []
+                    for commit in branch_commits:
+                        commit_info_list.append({
+                            'commit_name': commit['commit']['message'],
+                            'commit_hash': commit['sha'],
+                            'commit_link': commit['html_url']
+                        })
+                    branch_commits_dict[branch_name] = commit_info_list
+                else:
+                    continue
+
+        if branch_commits_dict:  # Only add the repository if it has branches with commits
+            all_commits[repo_name] = branch_commits_dict
         else:
-            print(f"Error fetching commits for repo {repo_name}: {commits_response.text}")
+            continue
 
     if not all_commits:
         return Response(json.dumps({'message': 'No commits found for the given week'}), status=200, mimetype='application/json')
 
     return Response(json.dumps(all_commits), status=200, mimetype='application/json')
-
 
 @app.route('/last_three_months', methods=['GET'])
 def last_three_months():
