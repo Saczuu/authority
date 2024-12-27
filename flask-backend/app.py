@@ -42,7 +42,7 @@ def index():
     return "Welcome to the index page!"
 
 @app.route('/authorize/<provider>')
-def oauth2_authorize(mo):
+def oauth2_authorize(provider):
     print(f"Received request to verify OAuth2 for {provider}")
 
     provider_data = current_app.config['OAUTH2_PROVIDERS'].get(provider)
@@ -268,4 +268,4 @@ def setup():
         return "Cookie not found", 404
 
 if __name__ == '__main__':
-    app.run(host='127.0.0.1', port=5000)
+    app.run(host='localhost', port=5000)
